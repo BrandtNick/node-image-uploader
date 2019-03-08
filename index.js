@@ -30,19 +30,19 @@ const upload = multer({
 
 // Functions used to save and delete image uploaded
 const assertCreateUniqueFileName = name => `${Date.now()}-${name}`; // Create unique file name using unix timestamp prefix
-const assertSaveImage = async (image) => {
+const assertSaveImage = async image => {
   try {
     const uniqueFileName = assertCreateUniqueFileName(image.originalname);
 
     await fs.ensureDir(uploadDir); // Create dir
     await fs.writeFile(`${uploadDir}/${uniqueFileName}`, uniqueFileName); // Create file
 
-    return `${uploadDir}/${file}`; // returns directory and filename
+    return `${uploadDir}/${uniqueFileName}`; // returns directory and filename
   } catch (err) {
     console.error(`Error: ${err.message}`);
   }
 };
-const assertDeleteImage = async (imageId) => {
+const assertDeleteImage = async imageId => {
   try {
     await fs.unlink(`${uploadDir}/${imageId}`);
 
