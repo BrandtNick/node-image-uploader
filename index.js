@@ -13,7 +13,7 @@ const storage = multer.memoryStorage(); // storage type
 const uploadDir = './public'; // Uploading directory
 
 // Check if file is equal to an allowed format
-const fileFilter = (req, file, cb) => {
+const assertIsValidFormat = (req, file, cb) => {
   const acceptedFormat = _.includes(allowedFormats, file.mimetype);
   if (!acceptedFormat) {
     req.uploadError = 'This file needs to be of jpeg/png/gif format';
@@ -21,39 +21,39 @@ const fileFilter = (req, file, cb) => {
   cb(null, acceptedFormat);
 };
 
-// Uploader used as express route middleware
-const upload = multer({
-  storage,
-  limits,
-  fileFilter
-}).single('image');
-
-// Functions used to save and delete image uploaded
 const assertCreateUniqueFileName = name => `${Date.now()}-${name}`; // Create unique file name using unix timestamp prefix
-const assertSaveImage = async image => {
-  try {
-    const uniqueFileName = assertCreateUniqueFileName(image.originalname);
 
-    await fs.ensureDir(uploadDir); // Create dir
-    await fs.writeFile(`${uploadDir}/${uniqueFileName}`, uniqueFileName); // Create file
+// Object of functions used to save and delete image uploaded
+const imageUploader = {
+  // Uploader used as express route middleware
+  upload: multer({
+    storage,
+    limits,
+    fileFilter: assertIsValidFormat,
+  }).single('image'), // Can only upload a single image at a time
 
-    return `${uploadDir}/${uniqueFileName}`; // returns directory and filename
-  } catch (err) {
-    console.error(`Error: ${err.message}`);
-  }
+  async saveImage(image) {
+    try {
+      const uniqueFileName = assertCreateUniqueFileName(image.originalname);
+
+      await fs.ensureDir(uploadDir); // Create dir
+      await fs.writeFile(`${uploadDir}/${uniqueFileName}`, uniqueFileName); // Create file
+
+      return `${uploadDir}/${uniqueFileName}`; // returns directory and filename
+    } catch (err) {
+      console.error(`Error: ${err.message}`);
+    }
+  },
+
+  async deleteImage(imageId) {
+    try {
+      await fs.unlink(`${uploadDir}/${imageId}`);
+
+      return `${uploadDir}/${imageId}`; // returns directory and image id
+    } catch (err) {
+      console.error(`Error: ${err.message}`);
+    }
+  },
 };
-const assertDeleteImage = async imageId => {
-  try {
-    await fs.unlink(`${uploadDir}/${imageId}`);
 
-    return `${uploadDir}/${imageId}`; // returns directory and image id
-  } catch (err) {
-    console.error(`Error: ${err.message}`);
-  }
-};
-
-module.exports = {
-  upload,
-  assertSaveImage,
-  assertDeleteImage,
-};
+module.exports = imageUploader;
